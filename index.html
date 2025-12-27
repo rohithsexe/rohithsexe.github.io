@@ -10,61 +10,73 @@
     <!-- QR Generator -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            background: #f2f2f2;
+            padding: 15px;
             text-align: center;
-            padding: 20px;
+        }
+        h2 {
+            margin-bottom: 10px;
         }
         #reader {
-            width: 300px;
+            width: 320px;
             margin: auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #reader video {
+            transform: scale(1.15); /* Helps Samsung ultra-wide issue */
         }
         .box {
-            background: white;
-            padding: 15px;
-            margin: 15px auto;
-            width: 90%;
-            max-width: 500px;
+            background: #ffffff;
+            padding: 12px;
+            margin: 12px auto;
+            max-width: 520px;
             border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
         pre {
             text-align: left;
             white-space: pre-wrap;
-            word-wrap: break-word;
+            word-break: break-word;
+            font-size: 14px;
+        }
+        #qrcode {
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
 <h2>UPI QR Scanner & Modifier</h2>
+<p>Optimized for Samsung devices</p>
 
 <div id="reader"></div>
 
 <div class="box">
     <h3>Decoded UPI URI</h3>
-    <pre id="decoded"></pre>
+    <pre id="decoded">Waiting for scan...</pre>
 </div>
 
 <div class="box">
     <h3>Modified UPI URI (₹1.00)</h3>
-    <pre id="modified"></pre>
+    <pre id="modified">—</pre>
 </div>
 
 <div class="box">
-    <h3>New QR Code</h3>
+    <h3>Generated QR Code</h3>
     <div id="qrcode"></div>
 </div>
 
 <script>
     function modifyUpiUri(upiUri) {
         const url = new URL(upiUri);
-
-        // Force am & mam to 1.00
         url.searchParams.set("am", "1.00");
         url.searchParams.set("mam", "1.00");
-
         return url.toString();
     }
 
@@ -72,8 +84,8 @@
         document.getElementById("qrcode").innerHTML = "";
         new QRCode(document.getElementById("qrcode"), {
             text: text,
-            width: 200,
-            height: 200
+            width: 220,
+            height: 220
         });
     }
 
@@ -82,20 +94,49 @@
 
         document.getElementById("decoded").textContent = decodedText;
 
-        const modifiedUpi = modifyUpiUri(decodedText);
-        document.getElementById("modified").textContent = modifiedUpi;
+        const modified = modifyUpiUri(decodedText);
+        document.getElementById("modified").textContent = modified;
 
-        generateQR(modifiedUpi);
+        generateQR(modified);
 
         html5QrCode.stop();
     }
 
-    const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        onScanSuccess
-    );
+    async function startBestCamera() {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices || devices.length === 0) {
+            alert("No cameras found");
+            return;
+        }
+
+        let bestCamera = devices[0];
+
+        // Prefer rear/back camera explicitly
+        devices.forEach(device => {
+            const label = device.label.toLowerCase();
+            if (
+                label.includes("back") ||
+                label.includes("rear") ||
+                label.includes("main")
+            ) {
+                bestCamera = device;
+            }
+        });
+
+        window.html5QrCode = new Html5Qrcode("reader");
+
+        html5QrCode.start(
+            bestCamera.id,
+            {
+                fps: 12,
+                qrbox: { width: 260, height: 260 },
+                disableFlip: true
+            },
+            onScanSuccess
+        );
+    }
+
+    startBestCamera();
 </script>
 
 </body>
