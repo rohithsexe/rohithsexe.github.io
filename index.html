@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>UPI QR Scanner & Modifier</title>
+
+    <!-- QR Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <!-- QR Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        #reader {
+            width: 300px;
+            margin: auto;
+        }
+        .box {
+            background: white;
+            padding: 15px;
+            margin: 15px auto;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        pre {
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<h2>UPI QR Scanner & Modifier</h2>
+
+<div id="reader"></div>
+
+<div class="box">
+    <h3>Decoded UPI URI</h3>
+    <pre id="decoded"></pre>
+</div>
+
+<div class="box">
+    <h3>Modified UPI URI (₹1.00)</h3>
+    <pre id="modified"></pre>
+</div>
+
+<div class="box">
+    <h3>New QR Code</h3>
+    <div id="qrcode"></div>
+</div>
+
+<script>
+    function modifyUpiUri(upiUri) {
+        const url = new URL(upiUri);
+
+        // Force am & mam to 1.00
+        url.searchParams.set("am", "1.00");
+        url.searchParams.set("mam", "1.00");
+
+        return url.toString();
+    }
+
+    function generateQR(text) {
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+            text: text,
+            width: 200,
+            height: 200
+        });
+    }
+
+    function onScanSuccess(decodedText) {
+        if (!decodedText.startsWith("upi://")) return;
+
+        document.getElementById("decoded").textContent = decodedText;
+
+        const modifiedUpi = modifyUpiUri(decodedText);
+        document.getElementById("modified").textContent = modifiedUpi;
+
+        generateQR(modifiedUpi);
+
+        html5QrCode.stop();
+    }
+
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess
+    );
+</script>
+
+</body>
+</html>
