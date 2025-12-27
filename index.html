@@ -19,9 +19,6 @@
             padding: 15px;
             text-align: center;
         }
-        h2 {
-            margin-bottom: 10px;
-        }
         #reader {
             width: 320px;
             margin: auto;
@@ -29,7 +26,7 @@
             overflow: hidden;
         }
         #reader video {
-            transform: scale(1.15); /* Helps Samsung ultra-wide issue */
+            transform: scale(1.15); /* Helps Samsung wide-angle issue */
         }
         .box {
             background: #ffffff;
@@ -53,7 +50,7 @@
 <body>
 
 <h2>UPI QR Scanner & Modifier</h2>
-<p>Optimized for Samsung devices</p>
+<p>Samsung-optimized • Encoding-safe</p>
 
 <div id="reader"></div>
 
@@ -73,11 +70,21 @@
 </div>
 
 <script>
+    /* ---------- ENCODING-SAFE UPI MODIFIER ---------- */
     function modifyUpiUri(upiUri) {
-        const url = new URL(upiUri);
-        url.searchParams.set("am", "1.00");
-        url.searchParams.set("mam", "1.00");
-        return url.toString();
+        const parts = upiUri.split("?");
+        if (parts.length !== 2) return upiUri;
+
+        const base = parts[0];
+        const params = parts[1].split("&");
+
+        const updatedParams = params.map(p => {
+            if (p.startsWith("am=")) return "am=1.00";
+            if (p.startsWith("mam=")) return "mam=1.00";
+            return p; // preserve original encoding
+        });
+
+        return base + "?" + updatedParams.join("&");
     }
 
     function generateQR(text) {
@@ -111,7 +118,6 @@
 
         let bestCamera = devices[0];
 
-        // Prefer rear/back camera explicitly
         devices.forEach(device => {
             const label = device.label.toLowerCase();
             if (
